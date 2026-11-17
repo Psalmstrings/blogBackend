@@ -5,27 +5,42 @@ import {
   getNews,
   getNewsById,
   editNews,
-  deleteNews
+  approveNews,
+  deleteNews,
+  getDashboardStats,
 } from "../controllers/newsController.js";
-
 import { protect } from "../middleware/authMiddleware.js";
-import { adminOnly, bloggerOnly } from "../middleware/roleMiddleware.js";
-// import uploadBlogImage from "../middleware/uploadBlogImage.js";
 import { authorize } from "../middleware/roleMiddleware.js";
 import { upload } from "../middleware/uploadCloud.js";
 
 const router = express.Router();
 
-// --- STATIC ROUTES (must be FIRST and UNIQUE) ---
+// --- PUBLIC STATIC ROUTES ---
 router.get("/get/all", getNews);
 router.get("/headlines", getHeadlines);
+router.get("/stats", getDashboardStats);
 
-// --- DYNAMIC ROUTE ---
+// --- PROTECTED CREATE ROUTE ---
+router.post(
+  "/create",
+  protect,
+  authorize("admin", "superadmin", "blogger"),
+  upload.single("coverImage"),
+  createNews
+);
+
+// --- APPROVE ROUTE (Supports both formats for existing frontend) ---
+router.put("/:id/approve", protect, authorize("admin", "superadmin"), approveNews);
+router.put("/admin/news/:id/approve", protect, authorize("admin", "superadmin"), approveNews);
+
+// --- DELETE ROUTE (Supports both formats) ---
+router.delete("/admin/news/:id", protect, authorize("admin", "superadmin"), deleteNews);
+router.delete("/:id", protect, authorize("admin", "superadmin", "blogger"), deleteNews);
+
+// --- EDIT ROUTE ---
+router.put("/:id", protect, authorize("admin", "superadmin", "blogger"), upload.single("coverImage"), editNews);
+
+// --- DYNAMIC GET ROUTE (must be last) ---
 router.get("/:id", getNewsById);
-
-// --- PROTECTED ROUTES ---
-router.post("/create", protect, authorize("admin", "blogger"), upload.single("coverImage"),createNews);
-router.put("/:id", protect, editNews);
-router.delete("/:id", protect, deleteNews);
 
 export default router;

@@ -4,19 +4,28 @@ import {
   loginAdmin,
   registerBlogger,
   loginBlogger,
-  getBloggers
+  getBloggers,
+  getAdmins,
+  toggleBloggerStatus,
+  deleteBlogger,
 } from "../controllers/authController.js";
+import { protect } from "../middleware/authMiddleware.js";
+import { authorize } from "../middleware/roleMiddleware.js";
 
 const router = express.Router();
 
+// Admin auth
 router.post("/admin/register", registerAdmin);
 router.post("/admin/login", loginAdmin);
+router.get("/admins", protect, authorize("admin", "superadmin"), getAdmins);
 
+// Blogger auth
 router.post("/blogger/register", registerBlogger);
 router.post("/blogger/login", loginBlogger);
 
-router.get("/bloggers", getBloggers);
-// router.get("/admins", getAdmins);
-// router.get
+// Blogger management by admin
+router.get("/bloggers", protect, authorize("admin", "superadmin"), getBloggers);
+router.put("/bloggers/:id/toggle", protect, authorize("admin", "superadmin"), toggleBloggerStatus);
+router.delete("/bloggers/:id", protect, authorize("admin", "superadmin"), deleteBlogger);
 
 export default router;
