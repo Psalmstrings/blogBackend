@@ -139,53 +139,95 @@ const CRAWLER_USER_AGENTS = [
 ];
 
 const renderSocialHtml = (news, req) => {
-  const title = news.title ? `${news.title} | NANS Southwest Zone D` : "NANS Southwest Zone D — Office of the PRO";
-  const rawDesc = news.content ? news.content.replace(/<[^>]*>?/gm, "").slice(0, 180) + "..." : "Latest update from the Office of the PRO, NANS Southwest Zone D.";
-  const description = rawDesc.replace(/"/g, "&quot;");
+  const title = news.title ? `${news.title} — NANS Southwest Zone D` : "NANS Southwest Zone D — Office of the PRO";
+  const cleanTitle = title.replace(/"/g, "&quot;").replace(/[\r\n]+/g, " ").trim();
+
+  let rawDesc = news.content 
+    ? news.content.replace(/<[^>]*>?/gm, "").replace(/\s+/g, " ").trim() 
+    : "Official press statement and student update from the Office of the PRO, NANS Southwest Zone D.";
+  
+  if (rawDesc.length > 200) {
+    rawDesc = rawDesc.slice(0, 197) + "...";
+  }
+  const cleanDescription = rawDesc.replace(/"/g, "&quot;");
 
   const frontendUrl = process.env.FRONTEND_URL || "https://officeoftheprozoned.com";
   const canonicalUrl = `${frontendUrl}/news/${news._id}`;
 
   let imageUrl = news.coverImage || "https://res.cloudinary.com/dd5p5t2rs/image/upload/v1773514865/blog_images/pd3q0fe4cnvj4pr5yr1i.jpg";
-  if (!imageUrl.startsWith("http")) {
-    imageUrl = `${process.env.BASE_URL || "https://blogbackend-xzrv.onrender.com"}/${imageUrl}`;
+  imageUrl = imageUrl.trim().replace(/^http:\/\//, "https://");
+
+  let socialImageUrl = imageUrl;
+  if (imageUrl.includes("res.cloudinary.com") && imageUrl.includes("/upload/")) {
+    if (!imageUrl.includes("c_fill")) {
+      socialImageUrl = imageUrl.replace("/upload/", "/upload/c_fill,g_auto,w_1200,h_630,q_auto,f_jpg/");
+    }
   }
 
+  const publishedDate = news.createdAt ? new Date(news.createdAt).toISOString() : new Date().toISOString();
+
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" prefix="og: https://ogp.me/ns# article: https://ogp.me/ns/article#">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${title}</title>
-  <meta name="description" content="${description}" />
+  <title>${cleanTitle}</title>
+  <meta name="description" content="${cleanDescription}" />
   <link rel="canonical" href="${canonicalUrl}" />
 
-  <!-- Open Graph / Facebook / WhatsApp -->
+  <!-- Open Graph / Facebook / WhatsApp / LinkedIn / Telegram -->
   <meta property="og:type" content="article" />
-  <meta property="og:title" content="${title}" />
-  <meta property="og:description" content="${description}" />
-  <meta property="og:image" content="${imageUrl}" />
-  <meta property="og:image:secure_url" content="${imageUrl}" />
+  <meta property="og:site_name" content="NANS Southwest Zone D — Office of the PRO" />
+  <meta property="og:title" content="${cleanTitle}" />
+  <meta property="og:description" content="${cleanDescription}" />
+  <meta property="og:url" content="${canonicalUrl}" />
+  <meta property="og:image" content="${socialImageUrl}" />
+  <meta property="og:image:secure_url" content="${socialImageUrl}" />
+  <meta property="og:image:type" content="image/jpeg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
-  <meta property="og:image:alt" content="${title}" />
-  <meta property="og:url" content="${canonicalUrl}" />
-  <meta property="og:site_name" content="NANS Southwest Zone D — Office of the PRO" />
+  <meta property="og:image:alt" content="${cleanTitle}" />
+  <meta property="article:published_time" content="${publishedDate}" />
 
   <!-- Twitter / X -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="${title}" />
-  <meta name="twitter:description" content="${description}" />
-  <meta name="twitter:image" content="${imageUrl}" />
-  <meta name="twitter:image:alt" content="${title}" />
+  <meta name="twitter:site" content="@NansZoneD" />
+  <meta name="twitter:creator" content="@NansZoneD" />
+  <meta name="twitter:domain" content="officeoftheprozoned.com" />
+  <meta name="twitter:title" content="${cleanTitle}" />
+  <meta name="twitter:description" content="${cleanDescription}" />
+  <meta name="twitter:image" content="${socialImageUrl}" />
+  <meta name="twitter:image:alt" content="${cleanTitle}" />
+
+  <!-- Structured Data JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    "headline": "${cleanTitle}",
+    "image": ["${socialImageUrl}"],
+    "datePublished": "${publishedDate}",
+    "description": "${cleanDescription}",
+    "mainEntityOfPage": "${canonicalUrl}"
+  }
+  </script>
 
   <meta http-equiv="refresh" content="0;url=${canonicalUrl}" />
+  <script>
+    if (typeof window !== "undefined") {
+      window.location.replace("${canonicalUrl}");
+    }
+  </script>
 </head>
-<body>
-  <h1>${title}</h1>
-  <p>${description}</p>
-  <img src="${imageUrl}" alt="${title}" style="max-width:100%;height:auto;" />
-  <p><a href="${canonicalUrl}">Click here if you are not redirected</a></p>
+<body style="font-family: system-ui, sans-serif; padding: 40px; text-align: center; background: #f8fafc; color: #0f172a;">
+  <div style="max-width: 600px; margin: 0 auto; background: #ffffff; padding: 32px; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+    <h1 style="font-size: 1.4rem; color: #052e16; margin-bottom: 16px;">${cleanTitle}</h1>
+    <img src="${socialImageUrl}" alt="${cleanTitle}" style="max-width: 100%; height: auto; border-radius: 10px; margin-bottom: 16px;" />
+    <p style="color: #475569; line-height: 1.6; margin-bottom: 24px;">${cleanDescription}</p>
+    <a href="${canonicalUrl}" style="display: inline-block; background: #15803d; color: #ffffff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">
+      Continue Reading on Official Portal →
+    </a>
+  </div>
 </body>
 </html>`;
 };
