@@ -19,8 +19,9 @@ router.post("/admin/register", registerAdmin);
 router.post("/admin/login", loginAdmin);
 router.get("/admins", protect, authorize("admin", "superadmin"), getAdmins);
 
-// Blogger auth
-router.post("/blogger/register", registerBlogger);
+// Blogger auth (Creation is strictly Admin-only)
+router.post("/blogger/register", protect, authorize("admin", "superadmin"), registerBlogger);
+router.post("/blogger/create", protect, authorize("admin", "superadmin"), registerBlogger);
 router.post("/blogger/login", loginBlogger);
 
 // Blogger management by admin

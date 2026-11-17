@@ -23,6 +23,7 @@ import mediaRoutes from "./routes/mediaRoutes.js";
 import eventRoutes from "./routes/eventRoutes.js";
 import inquiryRoutes from "./routes/inquiryRoutes.js";
 import auditRoutes from "./routes/auditRoutes.js";
+import analyticsRoutes from "./routes/analyticsRoutes.js";
 
 // Middleware
 import errorHandler from "./middleware/errorHandler.js";
@@ -121,6 +122,7 @@ app.use("/api/media", mediaRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/inquiries", inquiryRoutes);
 app.use("/api/audit-logs", auditRoutes);
+app.use("/api/analytics", analyticsRoutes);
 
 // ================= SOCIAL MEDIA OPEN GRAPH CRAWLER PREVIEW =================
 const CRAWLER_USER_AGENTS = [

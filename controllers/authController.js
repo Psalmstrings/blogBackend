@@ -154,23 +154,44 @@ export const getAdmins = async (req, res) => {
 
 // ------------------ BLOGGER ------------------
 
-// BLOGGER REGISTER
+// BLOGGER REGISTER (Admin restricted)
 export const registerBlogger = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, bio, avatar } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ success: false, message: "Name, email, and password are required" });
     }
 
     const exists = await Blogger.findOne({ email: email.toLowerCase() });
-    if (exists) return res.status(400).json({ success: false, message: "Blogger already exists" });
+    if (exists) return res.status(400).json({ success: false, message: "A blogger with this email already exists" });
 
     const hashed = await bcrypt.hash(password, 10);
-    const blogger = await Blogger.create({ name, email: email.toLowerCase(), password: hashed });
+    const blogger = await Blogger.create({
+      name,
+      email: email.toLowerCase(),
+      password: hashed,
+      bio: bio || "",
+      avatar: avatar || "",
+      role: "blogger",
+      status: "active",
+      isSuspended: false,
+    });
+
+    // Create Audit Log
+    if (req.user) {
+      await AuditLog.create({
+        adminId: req.user.id,
+        adminEmail: req.user.email || "Admin",
+        action: "CREATE_BLOGGER",
+        module: "Auth",
+        targetId: blogger._id.toString(),
+        details: { name: blogger.name, email: blogger.email }
+      });
+    }
 
     const { password: _, ...bloggerData } = blogger._doc;
-    res.status(201).json({ success: true, message: "Blogger registered", blogger: bloggerData });
+    res.status(201).json({ success: true, message: "Blogger account created successfully", blogger: bloggerData });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "Server error", error: error.message });
