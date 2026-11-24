@@ -17,6 +17,8 @@ const leadershipSchema = new mongoose.Schema(
       required: true,
       enum: [
         "Executive",
+        "Appointee",
+        "Appointee (Office of the PRO)",
         "Director",
         "Deputy Director",
         "Special Assistant",
@@ -27,6 +29,10 @@ const leadershipSchema = new mongoose.Schema(
         "Other",
       ],
       default: "Executive",
+    },
+    isAppointee: {
+      type: Boolean,
+      default: false,
     },
     photo: {
       type: String,

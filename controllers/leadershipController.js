@@ -4,12 +4,18 @@ import AuditLog from "../models/AuditLog.js";
 // GET ALL (Public, filtered by active administration or all active)
 export const getLeadershipProfiles = async (req, res) => {
   try {
-    const { category, administration, featured } = req.query;
+    const { category, administration, featured, isAppointee } = req.query;
     const filter = { status: "active" };
 
     if (category) filter.category = category;
     if (administration) filter.administration = administration;
     if (featured === "true") filter.isFeatured = true;
+    if (isAppointee === "true") {
+      filter.$or = [
+        { isAppointee: true },
+        { category: { $in: ["Appointee", "Appointee (Office of the PRO)"] } }
+      ];
+    }
 
     const profiles = await Leadership.find(filter).sort({ displayPriority: 1, createdAt: -1 });
     res.json({ success: true, count: profiles.length, profiles });
@@ -53,6 +59,20 @@ export const createLeadershipProfile = async (req, res) => {
       data.responsibilities = data.responsibilities.split("\n").map(r => r.trim()).filter(Boolean);
     }
 
+    if (data.isAppointee !== undefined) {
+      data.isAppointee = data.isAppointee === "true" || data.isAppointee === true;
+    } else if (data.category === "Appointee" || data.category === "Appointee (Office of the PRO)") {
+      data.isAppointee = true;
+    }
+
+    if (data.isFeatured !== undefined) {
+      data.isFeatured = data.isFeatured === "true" || data.isFeatured === true;
+    }
+
+    if (data.displayPriority !== undefined) {
+      data.displayPriority = Number(data.displayPriority) || 0;
+    }
+
     const profile = await Leadership.create(data);
 
     // Audit log
@@ -62,7 +82,7 @@ export const createLeadershipProfile = async (req, res) => {
       action: "CREATE_LEADERSHIP_PROFILE",
       module: "Leadership",
       targetId: profile._id.toString(),
-      details: { name: profile.fullName, position: profile.position },
+      details: { name: profile.fullName, position: profile.position, category: profile.category, isAppointee: profile.isAppointee },
     });
 
     res.status(201).json({ success: true, message: "Leadership profile created", profile });
@@ -84,6 +104,20 @@ export const updateLeadershipProfile = async (req, res) => {
       data.responsibilities = data.responsibilities.split("\n").map(r => r.trim()).filter(Boolean);
     }
 
+    if (data.isAppointee !== undefined) {
+      data.isAppointee = data.isAppointee === "true" || data.isAppointee === true;
+    } else if (data.category === "Appointee" || data.category === "Appointee (Office of the PRO)") {
+      data.isAppointee = true;
+    }
+
+    if (data.isFeatured !== undefined) {
+      data.isFeatured = data.isFeatured === "true" || data.isFeatured === true;
+    }
+
+    if (data.displayPriority !== undefined) {
+      data.displayPriority = Number(data.displayPriority) || 0;
+    }
+
     const updated = await Leadership.findByIdAndUpdate(req.params.id, data, { new: true });
     if (!updated) return res.status(404).json({ success: false, message: "Profile not found" });
 
@@ -93,7 +127,7 @@ export const updateLeadershipProfile = async (req, res) => {
       action: "UPDATE_LEADERSHIP_PROFILE",
       module: "Leadership",
       targetId: updated._id.toString(),
-      details: { name: updated.fullName, position: updated.position },
+      details: { name: updated.fullName, position: updated.position, category: updated.category, isAppointee: updated.isAppointee },
     });
 
     res.json({ success: true, message: "Leadership profile updated", profile: updated });
