@@ -6,6 +6,7 @@ import {
   createLeadershipProfile,
   updateLeadershipProfile,
   deleteLeadershipProfile,
+  reorderLeadershipProfiles,
 } from "../controllers/leadershipController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { authorize } from "../middleware/roleMiddleware.js";
@@ -19,6 +20,7 @@ router.get("/:id", getLeadershipById);
 
 // Admin protected routes
 router.get("/admin/all", protect, authorize("admin", "superadmin"), getAllLeadershipAdmin);
+router.put("/reorder", protect, authorize("admin", "superadmin"), reorderLeadershipProfiles);
 router.post(
   "/",
   protect,

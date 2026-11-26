@@ -156,3 +156,39 @@ export const deleteLeadershipProfile = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+// REORDER LEADERSHIP PROFILES (BATCH ORDER / HIERARCHY UPDATE)
+export const reorderLeadershipProfiles = async (req, res) => {
+  try {
+    const { items } = req.body;
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, message: "items array with id and displayPriority is required" });
+    }
+
+    const bulkOps = items.map((item, index) => ({
+      updateOne: {
+        filter: { _id: item.id || item._id },
+        update: {
+          $set: {
+            displayPriority: item.displayPriority !== undefined ? Number(item.displayPriority) : index + 1,
+          },
+        },
+      },
+    }));
+
+    await Leadership.bulkWrite(bulkOps);
+
+    await AuditLog.create({
+      adminId: req.user?.id,
+      adminEmail: req.user?.email || "Admin",
+      action: "REORDER_LEADERSHIP_HIERARCHY",
+      module: "Leadership",
+      details: { updatedCount: items.length },
+    });
+
+    res.json({ success: true, message: "Leadership hierarchy reordered successfully" });
+  } catch (err) {
+    console.error("Error reordering leadership profiles:", err);
+    res.status(500).json({ success: false, message: "Failed to update hierarchy order", error: err.message });
+  }
+};
